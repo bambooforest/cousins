@@ -116,14 +116,15 @@ ibib1240	1	0
 idom1241	-	0								
 ifee1241	0	0								
 igal1242	-	-								
-nucl1417	1	0								
 ilaa1246	1	1								
 tumu1242	0	0								
 isok1239	0	0								
 isek1239	-	0								
 nyam1275	-	1								
 jibu1239	0	1								
-juku1254	0	0								
+juku1254	0	0		
+ngan1302	-	-			
+yela1238	-	-				
 kabi1261	-	0								
 kago1246	0	0								
 kagu1239	1	0								
@@ -304,4 +305,7 @@ voro1240	0	0
 zigu1242	-	-								
 zinz1238	-	-								
 bita1251	-	1								
-zulu1248	1	0								
+zulu1248	1	0		
+bamb1264	-	-	
+beka1240	-	-	
+baka1272	-	-						
