@@ -1,0 +1,131 @@
+## Copeyleft: code written by Roi Holzman and Samantha Price.  Feel free to download, distribute, edit and change the code as you see fit, however acknowledgment of the authors is expected. Please let me know (roi.holzman@gmail.com) if you find bugs and errors in the code or annotation ##  
+
+
+# Intro2Phylo Session 4 - discrete trait evolution.
+
+# This tutorial will hopefully provide an introduction to analysing the evolution of continous traits using the geiger and ape packages in R.
+
+library(geiger)# note this will automatically load ape if it is not already loaded.
+
+mytree<-read.nexus("parrottree.nex")
+mydata<-read.table("parrotfishes.txt")
+
+# It is important to have names associated with the data that match the tip labels, if not ape will assume they are in the same order as the tip labels in the tree and you may or may not get a warning this is what it has done!  This is one of the most common mistakes when running Phylogenetic Comparative Methods in R - if you are getting errors or odd answers one of the first things to check is that the function is reading the species names correctly from the data object and they match the tip names in the tree - the name.check function in geiger as used in Intro2Phylo_S2.R is useful for this. There are a variety of ways to sort your data to match the tip labels, this is one of them:   
+
+mysorteddata <- mydata[mytree$tip.label, ]
+
+# lets look at the current distribution of trait values across the tree, which can be viewed using: 
+plot(mytree, show.tip.label=FALSE)
+tiplabels(mydata$scrape.excavate, frame="none", bg="white", adj=-0.5)# this substitutes the discrete trait 'scrape' for the tip labels. If we didn't specify frame="none" or bg="white" it would create an ugly plot with yellow squares around the tip labels.  The adj argument moves the labels away from the tips of the tree making it more aesthetically pleasing.
+
+# All of the methods (in R) that fit various likelihood models of discrete character evolution use continuous-time Markov models of trait evolution. It is therefore helpful to have at least a vague understanding of these models, a great introduction is Ronquist 2004 Bayesian inference of character evolution TREE 19(9) 475-481 and references therein. Markov models model a random process where the probability of change between character states depends only on the current state. Very simply if you have a binary trait it can be in one of two states 0 or 1 and at any point in time they have the chance to shift to the other state 0->1 or 1->0.  This is represented by the instantaneous rate matrix (Q)
+#				 	0			1
+# Q= 0			-D1		D1
+#		 1  		D0			-D0
+# D1 is the rate of change from 0->1 and D0 the rate from 1->0.  The diagonals (-D1 & -D0) are the rate at which the frequency of the state (0, 1) changes and is negative because the frequency of the state decreases as the character changes from one state to the other. All rows in Q sum to 0 as the rate at which the frequency of the state decreases must balance the rate at which it evolves into other states.
+# To use these models in probability calculations (or simulations) you need to integrate the Q matrix over time to estimate the number of transitions over a certain period of time (e.g. branch length).
+
+# (1) Fitting Markov models with fixed and variable transition rates using maximum likelihood with the fitDiscrete function in geiger
+
+# With a binary trait there is a minimum of 1 transition rate, as you can fix the transition rate of 1->0 = 0->1 and a maximum of 2 where 0->1 occurs at a different rate from 1->0.  Comparing the fit of these two models can be interesting biologically, for example the scrape/excavate trait in this dataset shows which parrotfishes actually gouge out large chunks of coral (1) versus nibble stuff off the surface (0) and it would be interesting to know whether it is easier to evolve from nibbling to excavating or vice versa or if it is equally likely. 
+
+# All transitions occur at equal rates, model=ER
+
+scrape_equalrate<-fitDiscrete(mytree, mydata$scrape.excavate, model="ER")
+
+# This returns a list that includes $lnl the log likelihood and $q the rate matrix, which gives the transition rate among categories.  
+
+# All transitions occur at different rates, model=ARD - This can sometimes be a difficult model to fit, as in my experience it often leads to flat likelihood surfaces and sometimes weird error messages. 
+
+scrape_ardrate<-fitDiscrete(mytree, mydata$scrape.excavate, model="ARD")
+
+# Additionally if you have more than two states you can fit a model that allows transition rates to be symmetric (0->1 occurs at same rate as 1->0 but at a different rate from 0->2), model=SYM. Obviously for traits with two states this will be the same as the equal rate model!
+
+scrape_symrate<-fitDiscrete(mytree, scrape, model="SYM") # 
+
+# You can then compare the likelihood of the two models using a likelihood ratio test (or AIC etc.) to see if one model fits the data significantly better. Below is how you could calculate the p-value of the likelihood ratio test in R by comparing it to the chi-square distribution with 1 degree of freedom.
+
+1-pchisq(2*(scrape_equalrate$Trait1$lnl-scrape_ardrate$Trait1$lnl),1)
+
+#pchisq function is part of the basic R stat's package that gives the chi-squared distribution function you need to give it a vector of quantiles and the degrees of freedom. .
+
+## You can now use these Markov models to test models of discrete character evolution where the rates of evolution to vary across the tree. This uses the optional treeTransform argument in fitDiscrete.  By default if you do not specify the type of Markov model using the model argument it will fit an equal transition rate. ##
+
+# (2) Testing for phylogenetic signal using Pagel's lambda with the fitDiscrete function in geiger.
+
+# Pagel's lambda is a tree transformation that assesses the degree of phylogenetic signal within the trait by multiplying the internal branches of the tree by values between 0 and 1 - which is the lambda parameter. A lambda of 1 indicates complete phylogenetic patterning as it returns the branch lengths untransformed while 0 indicates no patterning as it leads the tree collapsing to a single large polytomy. To visualize this we can transform the tree with lambda=0 using the lambdaTree function in geiger and compare it to the original tree
+
+lambda0<-lambdaTree(mytree, 0)#transforms the tree topology to one that has all internal branch lengths multiplied by 0 (i.e. lambda=0) creating one giant basal polytomy
+par(mfrow=c(1,2))#remember from day1 session2 that this sets the graphical parameters so that the plotting device has 1 row and 2 colums, so we can now plot two trees next to each other.
+plot(mytree)
+plot(lambda0)
+
+#Now find the maximum likelihood estimate of lambda for diet 
+
+diet_lambda<-fitDiscrete(mytree, mydata$diet, treeTransform="lambda")
+
+# The output returns a list with 4 components. The two of interest are the maximum likelihood estimate of Lambda ($treeParam)  and the negative log likelihood ($lnl). 
+
+# To see if this indicates significant phylogenetic signal we can compare the negative log likelihood when there is no signal i.e. using the tree transformed lambda=0, to that estimated from the original topology.
+
+diet_lambda0<-fitDiscrete(lambda0, mydata$diet)
+
+# You can then compare the negative log likelihood from this analysis to that when lambda was estimated using the original tree topology using a likelihood ratio test (or AIC etc.).
+
+# Likelihood ratio test approximated by a chi-squared distribution
+1-pchisq(2*(diet_lambda0$Trait1$lnl-diet_lambda$Trait1$lnl),1)
+
+# (3) Testing whether rates have increased or slowed over evolutionary time with the fitDiscrete function in geiger. If rates decrease over time it is a signature of adaptive radiation if the traits are ecologically relevant.
+
+# There are several models, available through the treeTransform argument, that test for increasing or decreasing evolutionary rates: Pagel's delta, linearChange, exponentialChange, twoRate. Pagel's delta raises all node depths to the power of delta, <1 suggests that evolutionary change is concentrated towards the root and >1 towards the tips. linearChange and exponentialChange fit models where the rate of evolution changes linearly or exponentially through time. twoRate fits a model that changes the rate at a particularly point in time. For these latter three models, if endRate ($treeParam) is greater than 1 evolution gradually speeds up and <1 gradually slows down. We will concentrate on the delta model as all four models are implemented in exactly the same way.
+
+scrape_delta<-fitDiscrete(mytree, mydata$scrape.excavate, treeTransform="delta")
+
+# $lnl gives the negative log likelihood, $q gives the rate and $treeParam the estimate of delta
+
+# We can visually compare the actual tree topology to one that has been transformed by the delta parameter estimated for scraping 
+
+deltatree_scrape<-deltaTree(mytree, scrape_delta$Trait1$treeParam)
+par(mfrow=c(1,2))
+plot(mytree)
+plot(deltatree_scrape)
+
+# Now we can compare the likelihood of this model where delta is estimated to one that assumes gradual evolution (delta=1) i.e. it doesn't transform the tree.  
+
+scrape_er<-fitDiscrete(mytree, mydata$scrape.excavate)# this is an equal rates model with no tree transformation.
+
+1-pchisq(2*(scrape_equalrate$Trait1$lnl-scrape_delta$Trait1$lnl),1)
+
+# This result is interesting as our delta estimate is <1 which indicates a slowing of the rate through time but the likelihood ratio test indicates it is not significantly different from an equal rates through time model (delta=1).  
+
+# You can also run these models allowing the transition rates to vary through time (this will take some time to calculate).
+
+scrape_ardratedelta<-fitDiscrete(mytree, scrape, treeTransform="delta", model="ARD")
+
+# This returns a list that includes $lnl the log likelihood and $q the rate matrix, which gives the transition rate among categories and $treeParam which is the maximum likelihood estimate of delta when transition rates are not equal.  
+
+# (4) Ancestral State Reconstruction using maximum likelihood with the ace function in ape.
+
+anc_scrape<-ace(mydata$scrape.excavate, mytree, type="discrete")
+
+# You may have received a warning message about NaNs (Not-a-Number) being produced and the standard error was not calculated for this reason. This should obviously inspire further investigation.  It may have been caused by an underflow issue while calculating likelihoods.
+
+# The object anc_scrape is a list that contains the overall likelihood score ($loglik), the evolutionary rate ($rates), the standard error ($se), a matrix indicating the probabilities of change among all possible states ($index.matrix), and matrix comprised of the marginal likelihood of each character state at each node ($lik.anc). We can view the marginal likelihoods on the phylogeny with pie charts using the 'pie' argument:
+
+plot(mytree, cex=0.5)
+nodelabels(pie=anc_scrape$lik.anc, piecol=c("green", "blue"), cex=0.5)
+
+# One way to display the state of the trait at the tips is to colour the tip labels to match the colour that represents each state in the marginal likelihood pie chart:
+
+plot(mytree, show.tip.label=FALSE)
+
+scrapecolour<-character(length(mytree$tip.label))#creates a vector with the same length as the tip labels in the tree 
+scrapecolour[mydata$scrape.excavate==0]<-"green"# then populates each element in the vector with a colour depending on character state in scrape
+scrapecolour[mydata$scrape.excavate==1]<-"blue"
+# note this only works because our data and our tip labels are in the same order, remember you can sort your dataset: mysorteddata <- mydata[mytree$tip.label, ].
+nodelabels(pie=anc_scrape$lik.anc, piecol=c("green", "blue"), cex=0.5)
+tiplabels(mytree$tip.label, col=scrapecolour, frame="none", bg="white", adj=-0.01, cex=0.7)
+
+# Additionally the ace function sometimes generates lots of error messages, many of which can be safely ignored but do not ignore negative marginal likelihood values in the $lik.anc element of the output. 
+
+
