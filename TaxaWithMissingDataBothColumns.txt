@@ -1,0 +1,3 @@
+Taxa with missing data in both columns:
+
+adan1247,alla1248,bafi1243,baga1273,mung1266,bamu1253,tune1261,keny1279,ntch1242,bass1258,biaf1240,bila1255,mbes1238,budz1238,budu1250,buyu1239,clel1238,njye1238,igal1242,kamb1297,cind1241,sama1300,ashe1269,klao1243,komo1260,orok1266,laka1252,kele1255,luba1249,mamb1296,manz1243,mban1263,mbum1254,mama1271,tsog1243,moba1244,myen1241,mund1325,doya1240,bali1274,doko1244,ling1263,kwas1243,nkhu1238,limb1268,sout2795,pape1239,asut1235,bera1259,lang1320,safw1238,bomw1238,nucl1396,suun1239,temm1241,toor1238,tupu1244,meta1238,taro1263,zigu1242,zinz1238
