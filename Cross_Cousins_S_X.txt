@@ -32,7 +32,6 @@ keny1279	-	-
 kiny1244	1	0								
 bain1259	-	0								
 basa1282	-	0								
-basa1282	-	0								
 ntch1242	-	-								
 shii1238	1	0								
 bass1258	-	-								
@@ -196,7 +195,6 @@ mama1271	-	-
 tsog1243	-	-								
 moba1244	-	-								
 long1393	1	-								
-moss1236	1	0								
 moss1236	0	0								
 myen1241	-	-								
 nucl1240	0	0								
@@ -294,7 +292,6 @@ vend1245	1	1
 momj1237	1	0								
 buku1249	1	0								
 meta1238	-	-								
-boro1274	-	0								
 nucl1347	0	1								
 xesi1238	1	0								
 yaka1269	1	-								
